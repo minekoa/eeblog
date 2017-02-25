@@ -1,0 +1,17 @@
+{application, eblogsv,
+ [{description, "EBlog Server"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, { eblogsv_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    cowboy
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, []},
+  {links, []}
+ ]}.
