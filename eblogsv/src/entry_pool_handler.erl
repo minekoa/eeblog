@@ -83,24 +83,21 @@ provide_entry_list(Req, Opts) ->
 get_entry_title(PoolPath, FileName) ->
     FullPath = filename:join([PoolPath, FileName]),
     {ok, Io} = file:open(FullPath, [read]),
-    {ok, TitleLine} = find_title_line(Io),
-    TitleLine.
+    {ok, Title} = find_title(Io),
+    Title.
 
-find_title_line(Io) ->
-    find_title_line( file:read_line(Io), Io ).
+find_title(Io) ->
+    find_title( file:read_line(Io), Io ).
 
-find_title_line({ok, Line}, Io) ->
-    S = string:strip(string:strip(Line,both,$\n)),
-    case string:len(S) of
-        0 ->
-            find_title_line( file:read_line(Io), Io );
-        _ ->
-            {ok, S}
-    end;
-find_title_line({error,_Reason}, _Io) ->
+find_title({ok, "# " ++ Title}, _Io) ->
+    S = string:strip(string:strip(Title,both,$\n)),
+    {ok, S};
+find_title({ok, _Line}, Io) ->
+    find_title( file:read_line(Io), Io );
+find_title({error,_Reason}, _Io) ->
     io:format("error:~p~n",[_Reason]),
     {error, ""};
-find_title_line(eof, _Io) ->
+find_title(eof, _Io) ->
     {ok, ""}.
 
 
