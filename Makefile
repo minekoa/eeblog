@@ -1,6 +1,6 @@
 REBAR3=rebar3
 PROGRAM_SV=eblogsv
-SV_DIR=eblogsv
+SV_DIR=server
 RELPATH=./$(SV_DIR)/_build/default/rel/$(PROGRAM_SV)
 
 .PHONY: all compile release clean
