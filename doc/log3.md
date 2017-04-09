@@ -41,7 +41,7 @@ note
 
 ### init/2
 
-```
+```erlang
 -spec init(cowboy_req:req(), string()) -> {'cowboy_rest', cowboy_req:req(), #handler_options{}}.
 init(Req, PoolPath) ->
     { cowboy_rest
@@ -55,7 +55,7 @@ init(Req, PoolPath) ->
 
 ### allowed_methods/2
 
-```
+```erlang
 -spec allowed_methods(cowboy_req:req(), #handler_options{})
                      -> { list(binary()), cowboy_req:req(), #handler_options{}}.
 allowed_methods(Req, Opts) ->
@@ -66,7 +66,7 @@ allowed_methods(Req, Opts) ->
 
 ### resource_exists/2
 
-```
+```erlang
 -spec resource_exists(cowboy_req:req(), #handler_options{})
                      -> {'true'|'false', cowboy_req:req(), #handler_options{}}.
 resource_exists(Req, Opts) ->
@@ -79,7 +79,7 @@ resource_exists(Req, Opts) ->
 
 ### content_types_provided/2
 
-```
+```erlang
 -spec content_types_provided(cowboy_req:req(), #handler_options{})
                            -> { list( { {binary(), binary(), '*' | list({binary(), binary()})}
                                       , atom()
@@ -99,7 +99,7 @@ content_types_provided(Req, Opts) ->
 
 ちなみに `provide_entry_list` はこんな感じにしました。
 
-```
+```erlang
 -spec provide_entry_list(cowboy_req:req(), #handler_options{})
                         -> {any(), cowboy_req:req(), #handler_options{}}.
 provide_entry_list(Req, Opts) ->
@@ -124,7 +124,7 @@ Json を作るため、jsx モジュールを使っています。
 
 `eblogsv_app.erl` に URLとハンドラーのマッピングを記述します。
 
-```
+```erlang
 start(_StartType, _StartArgs) ->
     Route = [ {
         '_',
@@ -153,7 +153,7 @@ jsx を使うようになったので、`eblogsv.app.src`と`rebar.config`にこ
 
 `eblogsv.app.src`
 
-```
+```erlang
 {application, eblogsv,
  [{description, "EBlog Server"},
   {vsn, "0.1.0"},
@@ -176,7 +176,7 @@ jsx を使うようになったので、`eblogsv.app.src`と`rebar.config`にこ
 
 `rebar.config`
 
-```
+```erlang
 {erl_opts, [debug_info]}.
 {deps, [
   {jsx,    ".*", {git, "git://github.com/talentdeficit/jsx",   {tag, "v2.8.2"}}},
