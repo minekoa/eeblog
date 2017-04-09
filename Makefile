@@ -1,14 +1,25 @@
 REBAR3=rebar3
+ELM_MAKE=elm-make
+ELM_PACKAGE=elm-package
+
 PROGRAM_SV=eblogsv
 SV_DIR=server
+SPA_SRC_DIR=spa
+SPA_OUT_DIR=$(SV_DIR)/priv
 RELPATH=./$(SV_DIR)/_build/default/rel/$(PROGRAM_SV)
 
-.PHONY: all compile release clean
+.PHONY: all env compile release clean
 
 
 all: release
 
-compile:
+env:
+	$(ELM_PACKAGE) install
+
+$(SPA_OUT_DIR)/index.html: $(SPA_SRC_DIR)/Main.elm
+	$(ELM_MAKE) $(SPA_SRC_DIR)/Main.elm --output $(SPA_OUT_DIR)/index.html
+
+compile: $(SPA_OUT_DIR)/index.html
 	cd $(SV_DIR);$(REBAR3) compile
 	cd $(SV_DIR);$(REBAR3) dialyzer
 
@@ -17,6 +28,7 @@ release: compile
 
 clean:
 	cd $(SV_DIR);$(REBAR3) clean
+	rm $(SPA_OUT_DIR)/index.html
 
 run: release
 	$(RELPATH)/bin/$(PROGRAM_SV) console
