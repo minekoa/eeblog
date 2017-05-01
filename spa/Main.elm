@@ -3,6 +3,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http exposing (Request)
 import Json.Decode as Decode
+import Json.Encode as Encode
 
 
 main =
@@ -20,15 +21,24 @@ main =
 type Page
     = TopPage
     | EntryListPage
+    | ViewEntryPage
+    | EditEntryPage
 
 type alias EntryInfo =
     { id : String
     , title : String
     }
 
+type alias Entry =
+    { id : String
+    , title : String
+    , content : String
+    }
+
 type alias Model =
     { page : Page
     , entry_list : List EntryInfo
+    , current_entry : Maybe Entry
     , message : Maybe String
     }
 
@@ -37,6 +47,7 @@ initModel : Model
 initModel =
     { page = TopPage
     , entry_list = []
+    , current_entry = Nothing
     , message = Nothing
     }
 
@@ -54,7 +65,14 @@ init =
 type Msg
     = RequestEntryList
     | ShowEntryList (Result Http.Error (List EntryInfo))
-
+    | RequestEntry String
+    | ShowEntry (Result Http.Error Entry)
+    | StartEditEntry
+    | EditContent String
+    | SaveEntry
+    | SaveEntryComplete String (Result Http.Error String)
+    | DeleteEntry String
+    | DeleteEntryComplete String (Result Http.Error String)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -65,12 +83,70 @@ update msg model =
 
         ShowEntryList (Ok entry_list) ->
             ( { model | page = EntryListPage
-                      , entry_list = entry_list }
+                      , entry_list = entry_list
+                      , current_entry = Nothing }
             , Cmd.none )
 
         ShowEntryList (Err _) ->
             ( { model | message = Just("エントリー一覧を取得できませんでした") }
             , Cmd.none)
+
+        RequestEntry id ->
+            ( model
+            , requestEntry id )
+
+        ShowEntry (Ok entry) ->
+            ( {model | page = ViewEntryPage
+                     , current_entry = Just entry }
+            , Cmd.none)
+
+        ShowEntry (Err _) ->
+            ( {model | message = Just("エントリーを取得できませんでした") }
+            , Cmd.none)
+
+        StartEditEntry ->
+            case model.current_entry of
+                Just(entry) ->
+                    ( {model | page = EditEntryPage}
+                    , Cmd.none)
+                Nothing ->
+                    ( model, Cmd.none)
+
+        EditContent new_content ->
+            case model.current_entry of
+                Just(entry) ->
+                    ( {model | current_entry = Just {entry | content = new_content}}
+                    , Cmd.none)
+                Nothing ->
+                    ( model, Cmd.none)
+        SaveEntry ->
+            case model.current_entry of
+                Just(entry) ->
+                    ( model
+                    , uploadEntry entry)
+                Nothing ->
+                    ( model, Cmd.none)
+
+        SaveEntryComplete id (Ok _) ->
+            ( model
+            , requestEntry id )
+
+        SaveEntryComplete id (Err _) ->
+            ( {model | message = Just("エントリー" ++ id ++ "の保存に失敗しました") }
+            , Cmd.none)
+
+        DeleteEntry id ->
+            ( model
+            , deleteEntry id)
+
+        DeleteEntryComplete id (Ok _) ->
+            ( model
+            , requestEntryList )
+
+        DeleteEntryComplete id (Err _) ->
+            ( {model | message = Just("エントリー" ++ id ++ "の削除に失敗しました") }
+            , Cmd.none)
+
 
 ------------------------------------------------------------
 -- VIEW
@@ -84,13 +160,16 @@ view model = div []
              , case model.page of
                    TopPage ->       topPage model
                    EntryListPage -> entryListPage model.entry_list
+                   ViewEntryPage -> viewEntryPage model.current_entry
+                   EditEntryPage -> editEntryPage model.current_entry
              ]
 
 navibar : Page -> Html Msg
 navibar page =
     div [class "navibar"]
         [ span [class "navitem", onClick RequestEntryList] [text "一覧"]
-        , span [class "navitem"] [text "編集"]
+        , span [class "navitem", onClick StartEditEntry] [text "編集"]
+        , span [class "navitem"] [text "新規作成"]
         ]
 
 messageLine : Maybe String -> Html Msg
@@ -108,12 +187,41 @@ topPage model =
 entryListPage : List EntryInfo -> Html Msg
 entryListPage entry_list =
     div [class "main_box"]
-        [ table [] (List.map (λx -> tr [] [ td [class "id_col"] [text x.id]
-                                          , td [class "title_col"] [text x.title]
+        [ table [] (List.map (λx -> tr [] [ td [class "id_col"]    [span [onClick (RequestEntry x.id)][text x.id]]
+                                          , td [class "title_col"] [span [onClick (RequestEntry x.id)][text x.title]]
                                           ]
                              ) (List.sortBy .id entry_list)
                    )
         ]
+
+viewEntryPage : Maybe Entry -> Html Msg
+viewEntryPage mb_entry =
+    case mb_entry of
+        Just( entry ) ->
+            div [class "main_box"]
+                [ h1 [] [text entry.title]
+                , div [] [text entry.id]
+                , pre [] [text entry.content]
+                ]
+        Nothing ->
+            div [class "main_box"][text "ページがありません"]
+
+editEntryPage : Maybe Entry -> Html Msg
+editEntryPage mb_entry =
+    case mb_entry of
+        Just( entry ) ->
+            div [class "main_box"]
+                [ div [] [ span [onClick SaveEntry] [text "保存"]
+                         , span [onClick (RequestEntry entry.id)] [text "キャンセル"]
+                         , span [onClick (DeleteEntry entry.id)] [text "削除"]
+                         ]
+                , h1 [] [text entry.title]
+                , div [] [text entry.id]
+                , textarea [onInput EditContent] [text entry.content]
+                ]
+        Nothing ->
+            div [class "main_box"][text "ページがありません"]
+
 
 
 ------------------------------------------------------------
@@ -138,6 +246,35 @@ requestEntryList =
         Http.send ShowEntryList (Http.get url entryListDecoder)
 
 
+requestEntry : String -> Cmd Msg
+requestEntry id =
+    let
+        url = "v1/entries/" ++ id
+    in
+        Http.send ShowEntry (Http.get url entryDecoder)
+
+
+uploadEntry : Entry -> Cmd Msg
+uploadEntry entry =
+    let
+        url = "v1/entries/" ++ entry.id
+        json = Http.jsonBody( Encode.object [ ("id", Encode.string entry.id)
+                                            , ("title", Encode.string entry.title)
+                                            , ("content", Encode.string entry.content)
+                                            ]
+                            )
+    in
+        Http.send (SaveEntryComplete entry.id) (httpPut url json)
+
+
+deleteEntry : String -> Cmd Msg
+deleteEntry id =
+    let
+        url = "v1/entries/" ++ id
+    in
+        Http.send (DeleteEntryComplete id) (httpDelete url)
+
+
 -- JSON DECODER
 
 entryListDecoder : Decode.Decoder (List EntryInfo)
@@ -151,3 +288,37 @@ entryInfoDecoder =
         (Decode.field "id" Decode.string)
         (Decode.field "title" Decode.string)
 
+
+entryDecoder : Decode.Decoder Entry
+entryDecoder =
+    Decode.map3 Entry
+        (Decode.field "id" Decode.string)
+        (Decode.field "title" Decode.string)
+        (Decode.field "content" Decode.string)
+
+
+-- HTTP Helper
+
+httpPut : String -> Http.Body -> Request String
+httpPut url body =
+    Http.request
+        { method = "PUT"
+        , headers = []
+        , url = url
+        , body = body
+        , expect = Http.expectString
+        , timeout = Nothing
+        , withCredentials = False
+        }
+
+httpDelete: String -> Request String
+httpDelete url =
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = url
+        , body = Http.emptyBody
+        , expect = Http.expectString
+        , timeout = Nothing
+        , withCredentials = False
+        }

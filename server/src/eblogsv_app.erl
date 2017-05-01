@@ -18,8 +18,9 @@ start(_StartType, _StartArgs) ->
     Route = [ {
         '_',
         [
-         {"/"          , cowboy_static     , {priv_file, eblogsv,"index.html"}},
-         {"/v1/entries", entry_pool_handler, os:getenv("HOME") ++ "/work/reps/eblog/tmp/contents"}
+         {"/"                 , cowboy_static     , {priv_file, eblogsv,"index.html"}},
+         {"/v1/entries"       , entry_pool_handler, os:getenv("HOME") ++ "/work/reps/eblog/tmp/contents"},
+         {"/v1/entries/[...]" , entry_handler     , os:getenv("HOME") ++ "/work/reps/eblog/tmp/contents"}
         ]
     } ],
     Dispatch = cowboy_router:compile(Route),
