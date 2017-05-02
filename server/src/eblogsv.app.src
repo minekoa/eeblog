@@ -1,5 +1,5 @@
 {application, eblogsv,
- [{description, "EBlog Server"},
+ [{description, "EEBlog Server"},
   {vsn, "0.1.0"},
   {registered, []},
   {mod, { eblogsv_app, []}},
