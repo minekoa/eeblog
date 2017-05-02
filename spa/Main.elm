@@ -4,7 +4,7 @@ import Html.Events exposing (..)
 import Http exposing (Request)
 import Json.Decode as Decode
 import Json.Encode as Encode
-
+import Markdown
 
 main =
     Html.program
@@ -232,9 +232,8 @@ viewEntryPage mb_entry =
     case mb_entry of
         Just( entry ) ->
             div [class "main_box"]
-                [ h1 [] [text entry.title]
-                , div [] [text entry.id]
-                , pre [] [text entry.content]
+                [ span [] [text entry.id]
+                , Markdown.toHtmlWith markdownOptions [] entry.content
                 ]
         Nothing ->
             div [class "main_box"][text "ページがありません"]
@@ -248,9 +247,9 @@ editEntryPage mb_entry =
                          , span [onClick (RequestEntry entry.id)] [text "キャンセル"]
                          , span [onClick (DeleteEntry entry.id)] [text "削除"]
                          ]
-                , h1 [] [text entry.title]
-                , div [] [text entry.id]
-                , textarea [onInput EditContent] [text entry.content]
+                , h1 [] [text ("(" ++ entry.id ++ " を編集中)")]
+                , div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
+                , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [] entry.content ] 
                 ]
         Nothing ->
             div [class "main_box"][text "ページがありません"]
@@ -263,13 +262,12 @@ editNewEntryPage mb_entry =
                 [ div [] [ span [onClick SaveNewEntry] [text "保存"]
                          , span [onClick (RequestEntryList)] [text "キャンセル"]
                          ]
-                , h1 [] [text entry.title]
-                , div [] [text entry.id]
-                , textarea [onInput EditContent] [text entry.content]
+                , h1 [] [text "(新しいエントリーを編集中)"]
+                , div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
+                , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [] entry.content ]
                 ]
         Nothing ->
             div [class "main_box"][text "ページがありません"]
-
 
 ------------------------------------------------------------
 -- SUBSCRIPTIONS
@@ -393,3 +391,14 @@ httpPost url body =
         , timeout = Nothing
         , withCredentials = False
         }
+
+-- Markdown
+
+markdownOptions: Markdown.Options
+markdownOptions =
+  { githubFlavored = Just { tables = True, breaks = True }
+  , defaultHighlighting = Nothing
+  , sanitize = False
+  , smartypants = False
+  }
+
