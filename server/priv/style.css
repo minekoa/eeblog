@@ -1,0 +1,52 @@
+.site-title {
+      color:#444;
+      background-color: #FFF;
+      text-decoration:none;
+      font-size:2em;
+      text-align:center;
+      border: none;
+      letter-spacing:1em;
+}
+
+.navibar {
+    text-align:center;
+    background-color: #EEE;
+    letter-spacing:0.3em;
+}
+
+.navitem {
+    color: #888;
+    border-left: 1px solid #FFF;
+    border-right: 1px solid #FFF;
+    padding: 0 0.2em;
+}
+
+.main_box {
+}
+
+.messageline {
+    color: red;
+}
+
+
+
+.editer_action {
+    margin: 0 2px;
+    padding: 6px 16px;
+    color: rgba(242, 246, 238, 1);
+    background: rgba(104, 159,56,1) linear-gradient(rgba(139,195,74,1), rgba(104,159,56,1));
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+
+.editarea {
+    border: 1px solid #666;
+}
+
+.previewarea {
+    border: 1px solid #666;
+    background-color: #FFA;
+}
+
+

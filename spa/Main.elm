@@ -89,7 +89,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         RequestEntryList ->
-            ( model
+            ( {model | message = Nothing}
             , requestEntryList )
 
         ShowEntryList (Ok entry_list) ->
@@ -103,7 +103,7 @@ update msg model =
             , Cmd.none)
 
         RequestEntry id ->
-            ( model
+            ( {model | message = Nothing}
             , requestEntry id )
 
         ShowEntry (Ok entry) ->
@@ -118,7 +118,8 @@ update msg model =
         EditEntry ->
             case model.current_entry of
                 Just(entry) ->
-                    ( {model | page = EditEntryPage}
+                    ( {model | page = EditEntryPage,
+                               message = Nothing}
                     , Cmd.none)
                 Nothing ->
                     ( model, Cmd.none)
@@ -160,7 +161,8 @@ update msg model =
 
         EditNewEntry ->
             ( {model | current_entry = Just brank_entry,
-                       page = EditNewEntryPage }
+                       page = EditNewEntryPage,
+                       message = Nothing}
             , Cmd.none)
 
         SaveNewEntry  ->
@@ -186,7 +188,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model = div []
-             [ h1 [] [text "EE Blog (Erlang×Elm)"]
+             [ h1 [class "site-title"] [text "EE Blog (Erlang×Elm)"]
              , navibar model.page
              , messageLine model.message
              , case model.page of
@@ -243,9 +245,9 @@ editEntryPage mb_entry =
     case mb_entry of
         Just( entry ) ->
             div [class "main_box"]
-                [ div [] [ span [onClick SaveEntry] [text "保存"]
-                         , span [onClick (RequestEntry entry.id)] [text "キャンセル"]
-                         , span [onClick (DeleteEntry entry.id)] [text "削除"]
+                [ div [] [ span [class "editer_action", onClick SaveEntry] [text "保存"]
+                         , span [class "editer_action", onClick (RequestEntry entry.id)] [text "キャンセル"]
+                         , span [class "editer_action", onClick (DeleteEntry entry.id)] [text "削除"]
                          ]
                 , h1 [] [text ("(" ++ entry.id ++ " を編集中)")]
                 , div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
@@ -259,8 +261,8 @@ editNewEntryPage mb_entry =
     case mb_entry of
         Just( entry ) ->
             div [class "main_box"]
-                [ div [] [ span [onClick SaveNewEntry] [text "保存"]
-                         , span [onClick (RequestEntryList)] [text "キャンセル"]
+                [ div [] [ span [class "editer_action", onClick SaveNewEntry] [text "保存"]
+                         , span [class "editer_action", onClick (RequestEntryList)] [text "キャンセル"]
                          ]
                 , h1 [] [text "(新しいエントリーを編集中)"]
                 , div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
@@ -321,7 +323,7 @@ uploadNewEntry entry =
                                             ]
                             )
     in
-        Http.send (SaveEntryComplete entry.id) (httpPost url json)
+        Http.send SaveNewEntryComplete (httpPost url json)
 
 deleteEntry : String -> Cmd Msg
 deleteEntry id =

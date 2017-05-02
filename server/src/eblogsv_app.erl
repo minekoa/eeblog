@@ -20,7 +20,8 @@ start(_StartType, _StartArgs) ->
         [
          {"/"                 , cowboy_static     , {priv_file, eblogsv,"index.html"}},
          {"/v1/entries"       , entry_pool_handler, os:getenv("HOME") ++ "/work/reps/eeblog/tmp/contents"},
-         {"/v1/entries/[...]" , entry_handler     , os:getenv("HOME") ++ "/work/reps/eeblog/tmp/contents"}
+         {"/v1/entries/[...]" , entry_handler     , os:getenv("HOME") ++ "/work/reps/eeblog/tmp/contents"},
+         {"/[...]"            , cowboy_static     , {priv_dir,  eblogsv, ""}}
         ]
     } ],
     Dispatch = cowboy_router:compile(Route),

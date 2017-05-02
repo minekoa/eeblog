@@ -16,10 +16,10 @@ all: release
 env:
 	$(ELM_PACKAGE) install
 
-$(SPA_OUT_DIR)/index.html: $(SPA_SRC_DIR)/Main.elm
-	$(ELM_MAKE) $(SPA_SRC_DIR)/Main.elm --output $(SPA_OUT_DIR)/index.html
+$(SPA_OUT_DIR)/Main.js: $(SPA_SRC_DIR)/Main.elm
+	$(ELM_MAKE) $(SPA_SRC_DIR)/Main.elm --output $(SPA_OUT_DIR)/Main.js
 
-compile: $(SPA_OUT_DIR)/index.html
+compile: $(SPA_OUT_DIR)/Main.js
 	cd $(SV_DIR);$(REBAR3) compile
 	cd $(SV_DIR);$(REBAR3) dialyzer
 
@@ -28,7 +28,7 @@ release: compile
 
 clean:
 	cd $(SV_DIR);$(REBAR3) clean
-	rm $(SPA_OUT_DIR)/index.html
+	rm $(SPA_OUT_DIR)/Main.js
 
 run: release
 	$(RELPATH)/bin/$(PROGRAM_SV) console
