@@ -43,7 +43,7 @@ resource_exists(Req, Opts) ->
     PoolPath = Opts#handler_options.pool_path,
     case filename(Req) of
         [] -> {false, Req, Opts};
-        FileName -> {exist_entry(PoolPath, FileName), Req, Opts}
+        FileName -> {entry_lib:exist_entry(PoolPath, FileName), Req, Opts}
     end.
 
 
@@ -74,7 +74,7 @@ content_types_accepted(Req, Opts) ->
 delete_resource(Req0, Opts) ->
     PoolPath = Opts#handler_options.pool_path,
     FileName = filename(Req0),
-    case delete_entry(PoolPath, FileName) of
+    case entry_lib:delete_entry(PoolPath, FileName) of
         ok -> {true, Req0, Opts};
         _Err -> {false, Req0, Opts}
     end.
@@ -88,12 +88,12 @@ delete_resource(Req0, Opts) ->
 provide_entry(Req0, Opts) ->
     PoolPath = Opts#handler_options.pool_path,
     FileName = filename(Req0),
-    Title = get_entry_title(PoolPath, FileName),
+    Title = entry_lib:get_entry_title(PoolPath, FileName),
     Cats  = [],
 
-    case read_entry(PoolPath, FileName) of
+    case entry_lib:read_entry(PoolPath, FileName) of
         {ok, BinData} ->
-            { make_entry_json(FileName, Title, Cats, BinData)
+            { entry_lib:make_entry_json(FileName, Title, Cats, BinData)
             , set_CORS_headers(Req0)
             , Opts
             };
@@ -110,9 +110,9 @@ accept_entry(Req0, Opts) ->
 
     try
         {ok, Body, Req1} = cowboy_req:read_body(Req0),
-        {ok, Id, _Title, _Cats, BinData} = parse_entry_json(Body),
+        {ok, Id, _Title, _Cats, BinData} = entry_lib:parse_entry_json(Body),
         FileName = Id,
-        case write_entry(PoolPath, FileName, BinData) of
+        case entry_lib:write_entry(PoolPath, FileName, BinData) of
             ok ->
                 {true, set_CORS_headers(Req1), Opts};
             _Err -> % 409 Conflict
@@ -144,72 +144,5 @@ set_CORS_headers(Req0) ->
     Req2 = cowboy_req:set_resp_header(<<"access-control-allow-origin">>, <<"*">>, Req1),
     Req2.
 
-%%------------------------------------------------------------
-%% FileOperation
-%%------------------------------------------------------------
-
--spec exist_entry(string(), string()) -> boolean().
-exist_entry(PoolPath, FileName) ->
-    FulPath = filename:join([PoolPath, FileName]),
-    filelib:is_file(FulPath).
-
--spec read_entry(string(), string()) -> {'ok', binary()} | {'error', atom()}.
-read_entry(PoolPath, FileName) ->
-    FulPath = filename:join([PoolPath, FileName]),
-    file:read_file(FulPath).
-
--spec write_entry(string(), string(), binary()) -> {'ok', binary()} | {'error', atom()}.
-write_entry(PoolPath, FileName, BinData) ->
-    FulPath = filename:join([PoolPath, FileName]),
-    file:write_file(FulPath, BinData).
-
--spec delete_entry(string(), string()) -> 'ok' | {'error', atom()}.
-delete_entry(PoolPath, FileName) ->
-    FulPath = filename:join([PoolPath, FileName]),
-    file:delete(FulPath).
-
--spec get_entry_title(string(), string()) -> string().
-get_entry_title(PoolPath, FileName) ->
-    FullPath = filename:join([PoolPath, FileName]),
-    {ok, Io} = file:open(FullPath, [read]),
-    {ok, Title} = find_title(Io),
-    Title.
-
-find_title(Io) ->
-    find_title( file:read_line(Io), Io ).
-
-find_title({ok, "# " ++ Title}, _Io) ->
-    S = string:strip(string:strip(Title,both,$\n)),
-    {ok, S};
-find_title({ok, _Line}, Io) ->
-    find_title( file:read_line(Io), Io );
-find_title({error,_Reason}, _Io) ->
-    io:format("error:~p~n",[_Reason]),
-    {error, ""};
-find_title(eof, _Io) ->
-    {ok, ""}.
-
-%%------------------------------------------------------------
-%% Json
-%%------------------------------------------------------------
-
--spec parse_entry_json(binary()) -> {'ok', string(), string(), list(string()), binary()} | {'error', atom()}.
-parse_entry_json(JsonText) ->
-    JsonTerm = jsx:decode(JsonText),
-
-    case lists:keysort(1, JsonTerm) of
-        [ {<<"content">>, Content}, {<<"id">>, Id}, {<<"title">>, Title}] ->
-            {ok, binary_to_list(Id), binary_to_list(Title), [], Content};
-        _ ->
-            {error, badjson}
-    end.
-
--spec make_entry_json(string(), string(), list(string()), binary()) -> binary().
-make_entry_json(Id, Title, _Cats, BinData) ->
-    JsonTerm = [ {<<"id">>, list_to_binary(Id)}
-               , {<<"title">>, list_to_binary(Title)}
-               , {<<"content">>, BinData}
-               ],
-    jsx:encode(JsonTerm).
 
 
