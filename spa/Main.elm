@@ -235,7 +235,7 @@ viewEntryPage mb_entry =
         Just( entry ) ->
             div [class "page_box"]
                 [ span [] [text entry.id]
-                , Markdown.toHtmlWith markdownOptions [] entry.content
+                , Markdown.toHtmlWith markdownOptions [class "md"] entry.content
                 ]
         Nothing ->
             div [class "page_box"][text "ページがありません"]
@@ -251,7 +251,7 @@ editEntryPage mb_entry =
                          ]
                 , h1 [] [text ("(" ++ entry.id ++ " を編集中)")]
                 , div [class "editor_box"][ div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
-                                          , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [] entry.content ]
+                                          , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [class "md"] entry.content ]
                                           ]
                 ]
         Nothing ->
@@ -267,7 +267,7 @@ editNewEntryPage mb_entry =
                          ]
                 , h1 [] [text "(新しいエントリーを編集中)"]
                 , div [class "editor_box"] [ div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
-                                           , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [] entry.content ]
+                                           , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [class "md"] entry.content ]
                                            ]
                 ]
         Nothing ->

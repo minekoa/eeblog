@@ -45,6 +45,9 @@ body {
     border-right: 1px solid #FFF;
     padding: 0 0.2em;
 }
+.navitem:hover {
+    color: #4fa1db;
+}
 
 .page_box {
     margin: 0;
@@ -96,6 +99,8 @@ body {
 
     width: 50%;
     height: 100%;
+
+    overflow: scroll;
 }
 
 
