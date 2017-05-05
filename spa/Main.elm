@@ -187,7 +187,7 @@ update msg model =
 ------------------------------------------------------------
 
 view : Model -> Html Msg
-view model = div []
+view model = div [class "root_box"]
              [ h1 [class "site-title"] [text "EE Blog (Erlang×Elm)"]
              , navibar model.page
              , messageLine model.message
@@ -221,11 +221,11 @@ topPage model =
 
 entryListPage : List EntryInfo -> Html Msg
 entryListPage entry_list =
-    div [class "main_box"]
+    div [class "page_box"]
         [ table [] (List.map (λx -> tr [] [ td [class "id_col"]    [span [onClick (RequestEntry x.id)][text x.id]]
                                           , td [class "title_col"] [span [onClick (RequestEntry x.id)][text x.title]]
                                           ]
-                             ) (List.sortBy .id entry_list)
+                             ) (List.sortBy .id entry_list) |> List.reverse
                    )
         ]
 
@@ -233,43 +233,45 @@ viewEntryPage : Maybe Entry -> Html Msg
 viewEntryPage mb_entry =
     case mb_entry of
         Just( entry ) ->
-            div [class "main_box"]
+            div [class "page_box"]
                 [ span [] [text entry.id]
                 , Markdown.toHtmlWith markdownOptions [] entry.content
                 ]
         Nothing ->
-            div [class "main_box"][text "ページがありません"]
+            div [class "page_box"][text "ページがありません"]
 
 editEntryPage : Maybe Entry -> Html Msg
 editEntryPage mb_entry =
     case mb_entry of
         Just( entry ) ->
-            div [class "main_box"]
+            div [class "page_box"]
                 [ div [] [ span [class "editer_action", onClick SaveEntry] [text "保存"]
                          , span [class "editer_action", onClick (RequestEntry entry.id)] [text "キャンセル"]
                          , span [class "editer_action", onClick (DeleteEntry entry.id)] [text "削除"]
                          ]
                 , h1 [] [text ("(" ++ entry.id ++ " を編集中)")]
-                , div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
-                , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [] entry.content ] 
+                , div [class "editor_box"][ div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
+                                          , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [] entry.content ]
+                                          ]
                 ]
         Nothing ->
-            div [class "main_box"][text "ページがありません"]
+            div [class "page_box"][text "ページがありません"]
 
 editNewEntryPage : Maybe Entry -> Html Msg
 editNewEntryPage mb_entry =
     case mb_entry of
         Just( entry ) ->
-            div [class "main_box"]
+            div [class "page_box"]
                 [ div [] [ span [class "editer_action", onClick SaveNewEntry] [text "保存"]
                          , span [class "editer_action", onClick (RequestEntryList)] [text "キャンセル"]
                          ]
                 , h1 [] [text "(新しいエントリーを編集中)"]
-                , div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
-                , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [] entry.content ]
+                , div [class "editor_box"] [ div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
+                                           , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [] entry.content ]
+                                           ]
                 ]
         Nothing ->
-            div [class "main_box"][text "ページがありません"]
+            div [class "page_box"][text "ページがありません"]
 
 ------------------------------------------------------------
 -- SUBSCRIPTIONS
