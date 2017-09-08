@@ -99,7 +99,8 @@ start(_StartType, _StartArgs) ->
   <h1>eblog(仮)</h1>
   <p>こんにちは、こんにちは！</p>
 </body>
-</html>```
+</html>
+```
 
 ## ビルドと実行
 
