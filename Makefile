@@ -14,7 +14,7 @@ RELPATH=./$(SV_DIR)/_build/default/rel/$(PROGRAM_SV)
 all: release
 
 env:
-	$(ELM_PACKAGE) install
+	elm-install
 
 $(SPA_OUT_DIR)/Main.js: $(SPA_SRC_DIR)/Main.elm
 	$(ELM_MAKE) $(SPA_SRC_DIR)/Main.elm --output $(SPA_OUT_DIR)/Main.js

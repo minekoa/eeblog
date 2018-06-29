@@ -6,6 +6,11 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Markdown
 
+import TextEditor
+import TextEditor.KeyBind
+import TextEditor.Buffer
+import TextEditor.Option
+
 main =
     Html.program
         { init = init
@@ -41,23 +46,29 @@ type alias Model =
     , entry_list : List EntryInfo
     , current_entry : Maybe Entry
     , message : Maybe String
-    }
-
-
-initModel : Model
-initModel =
-    { page = TopPage
-    , entry_list = []
-    , current_entry = Nothing
-    , message = Nothing
+    , editor : TextEditor.Model
     }
 
 
 init : (Model, Cmd Msg)
 init =
-    ( initModel
-    , Cmd.none
-    )
+    let
+        ( m, c ) =
+            TextEditor.init
+                "editor-id1"
+                (TextEditor.KeyBind.basic ++ TextEditor.KeyBind.gates ++ TextEditor.KeyBind.emacsLike)
+                ""
+        opt = TextEditor.options m
+
+    in
+        ( { page = TopPage
+          , entry_list = []
+          , current_entry = Nothing
+          , message = Nothing
+          , editor = m |> TextEditor.setOptions { opt | showControlCharactor = True }
+          }
+        , Cmd.map EditorMsg c
+        )
 
 brank_entry : Entry
 brank_entry =
@@ -76,7 +87,6 @@ type Msg
     | RequestEntry String
     | ShowEntry (Result Http.Error Entry)
     | EditEntry
-    | EditContent String
     | SaveEntry
     | SaveEntryComplete String (Result Http.Error String)
     | DeleteEntry String
@@ -84,6 +94,7 @@ type Msg
     | EditNewEntry 
     | SaveNewEntry 
     | SaveNewEntryComplete (Result Http.Error String)
+    | EditorMsg TextEditor.Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -118,19 +129,20 @@ update msg model =
         EditEntry ->
             case model.current_entry of
                 Just(entry) ->
-                    ( {model | page = EditEntryPage,
-                               message = Nothing}
+                    (  {model
+                           | page = EditEntryPage
+                           , message = Nothing
+                           , editor = TextEditor.setBuffer
+                                          ( TextEditor.Buffer.init
+                                                (model.current_entry |> Maybe.andThen (\e -> Just e.content) |> Maybe.withDefault "")
+                                          )
+                                          model.editor
+                            
+                       }
                     , Cmd.none)
                 Nothing ->
                     ( model, Cmd.none)
 
-        EditContent new_content ->
-            case model.current_entry of
-                Just(entry) ->
-                    ( {model | current_entry = Just {entry | content = new_content}}
-                    , Cmd.none)
-                Nothing ->
-                    ( model, Cmd.none)
         SaveEntry ->
             case model.current_entry of
                 Just(entry) ->
@@ -160,9 +172,12 @@ update msg model =
             , Cmd.none)
 
         EditNewEntry ->
-            ( {model | current_entry = Just brank_entry,
-                       page = EditNewEntryPage,
-                       message = Nothing}
+            ( {model
+                  | current_entry = Just brank_entry
+                  , page = EditNewEntryPage
+                  , message = Nothing
+                  , editor = TextEditor.setBuffer (TextEditor.Buffer.init"") model.editor
+              }
             , Cmd.none)
 
         SaveNewEntry  ->
@@ -181,6 +196,25 @@ update msg model =
             ( {model | message = Just("あたらしいエントリーの保存に失敗しました") }
             , Cmd.none)
 
+        EditorMsg edmsg ->
+            let
+                ( m, c ) =
+                    TextEditor.update edmsg model.editor
+
+                new_content = m |> TextEditor.buffer |> (.contents) |> String.join "\n"
+            in
+                ( case (model.current_entry, (model.page == EditEntryPage || model.page == EditNewEntryPage)) of
+                      (Just entry, True) ->
+                          { model
+                              | current_entry = Just {entry | content = new_content}
+                              , editor = m
+                          }
+
+                      _ ->
+                          { model | editor = m }
+                , Cmd.map EditorMsg c
+                )
+
 
 ------------------------------------------------------------
 -- VIEW
@@ -195,8 +229,8 @@ view model = div [class "root_box"]
                    TopPage          -> topPage model
                    EntryListPage    -> entryListPage model.entry_list
                    ViewEntryPage    -> viewEntryPage model.current_entry
-                   EditEntryPage    -> editEntryPage model.current_entry
-                   EditNewEntryPage -> editNewEntryPage model.current_entry
+                   EditEntryPage    -> editEntryPage model.current_entry model.editor
+                   EditNewEntryPage -> editNewEntryPage model.current_entry model.editor
              ]
 
 navibar : Page -> Html Msg
@@ -240,8 +274,8 @@ viewEntryPage mb_entry =
         Nothing ->
             div [class "page_box"][text "ページがありません"]
 
-editEntryPage : Maybe Entry -> Html Msg
-editEntryPage mb_entry =
+editEntryPage : Maybe Entry -> TextEditor.Model -> Html Msg
+editEntryPage mb_entry editor =
     case mb_entry of
         Just( entry ) ->
             div [class "page_box"]
@@ -250,15 +284,15 @@ editEntryPage mb_entry =
                          , span [class "editer_action", onClick (DeleteEntry entry.id)] [text "削除"]
                          ]
                 , h1 [] [text ("(" ++ entry.id ++ " を編集中)")]
-                , div [class "editor_box"][ div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
+                , div [class "editor_box"][ div [class "editarea"]    [ Html.map EditorMsg (TextEditor.view editor) ] --[ textarea [onInput EditContent] [text entry.content] ]
                                           , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [class "md"] entry.content ]
                                           ]
                 ]
         Nothing ->
             div [class "page_box"][text "ページがありません"]
 
-editNewEntryPage : Maybe Entry -> Html Msg
-editNewEntryPage mb_entry =
+editNewEntryPage : Maybe Entry -> TextEditor.Model -> Html Msg
+editNewEntryPage mb_entry editor =
     case mb_entry of
         Just( entry ) ->
             div [class "page_box"]
@@ -266,7 +300,7 @@ editNewEntryPage mb_entry =
                          , span [class "editer_action", onClick (RequestEntryList)] [text "キャンセル"]
                          ]
                 , h1 [] [text "(新しいエントリーを編集中)"]
-                , div [class "editor_box"] [ div [class "editarea"]    [ textarea [onInput EditContent] [text entry.content] ]
+                , div [class "editor_box"] [ div [class "editarea"]    [ Html.map EditorMsg (TextEditor.view editor) ] --[ textarea [onInput EditContent] [text entry.content] ]
                                            , div [class "previewarea"] [ Markdown.toHtmlWith markdownOptions [class "md"] entry.content ]
                                            ]
                 ]
@@ -279,7 +313,7 @@ editNewEntryPage mb_entry =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.map EditorMsg (TextEditor.subscriptions model.editor)
 
 ------------------------------------------------------------
 -- OTHERS
