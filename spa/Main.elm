@@ -200,13 +200,11 @@ update msg model =
             let
                 ( m, c ) =
                     TextEditor.update edmsg model.editor
-
-                new_content = m |> TextEditor.buffer |> (.contents) |> String.join "\n"
             in
-                ( case (model.current_entry, (model.page == EditEntryPage || model.page == EditNewEntryPage)) of
-                      (Just entry, True) ->
+                ( case (model.current_entry, edmsg) of
+                      (Just entry, TextEditor.UpdateContents new_contents) ->
                           { model
-                              | current_entry = Just {entry | content = new_content}
+                              | current_entry = Just {entry | content = String.join "\n" new_contents}
                               , editor = m
                           }
 
